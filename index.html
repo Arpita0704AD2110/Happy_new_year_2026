@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>The 2025 Archive 🎮</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Great+Vibes&family=Merriweather:wght@300;700&family=Gotu&family=Caveat:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: #000000;
+            height: 100vh;
+            height: 100dvh; /* Mobile browser fix */
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Merriweather', serif;
+            color: #ffffff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- STARS --- */
+        .stars {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000 url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/stars.png') repeat;
+            z-index: 0; opacity: 0.5; animation: moveStars 150s linear infinite;
+        }
+        @keyframes moveStars { from {background-position:0 0;} to {background-position:-10000px 5000px;} }
+
+        /* --- MUSIC ICON --- */
+        .music-indicator {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            font-size: 1.5rem; display: none; color: #ffd700;
+            animation: spin 5s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* --- SCREEN 1: LANGUAGE --- */
+        #lang-screen {
+            position: absolute; z-index: 30;
+            width: 100%; height: 100%;
+            background: #000000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s; padding: 20px;
+        }
+
+        .title-main {
+            font-family: 'Cinzel', serif; font-size: 1.8rem; color: #ffd700; 
+            text-align: center; margin-bottom: 20px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .lang-btn {
+            background: transparent; border: 2px solid #ffd700; color: #ffd700;
+            padding: 15px 30px; margin: 10px; font-size: 1rem; border-radius: 50px;
+            cursor: pointer; width: 100%; max-width: 280px; font-weight: bold;
+            font-family: 'Cinzel', serif; letter-spacing: 1px; transition: 0.3s;
+        }
+        .lang-btn:active { background: #ffd700; color: #000; transform: scale(0.95); }
+
+        /* --- SCREEN 2: ENVELOPE --- */
+        #envelope-screen {
+            position: absolute; z-index: 20;
+            width: 100%; height: 100%;
+            display: none; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.95);
+            transition: opacity 1s;
+        }
+
+        .envelope-container { 
+            position: relative; width: 300px; height: 200px; cursor: pointer; 
+            transform: scale(0.85); /* Default scale for mobile */
+            transition: transform 0.3s;
+        }
+        /* Make envelope larger on bigger screens */
+        @media (min-width: 400px) { .envelope-container { transform: scale(1); } }
+        @media (min-width: 600px) { .envelope-container { transform: scale(1.2); } }
+
+        .envelope-back { position: absolute; width: 100%; height: 100%; background: #c0392b; border-radius: 5px; }
+        .letter-paper {
+            position: absolute; top: 10px; left: 10px; width: 280px; height: 180px;
+            background: #fff; border-radius: 3px; z-index: 2;
+            transition: transform 0.8s ease-in-out;
+            display: flex; justify-content: center; align-items: center;
+            color: #000; font-family: 'Great Vibes', cursive; font-size: 2.2rem;
+        }
+        .envelope-pocket {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; z-index: 3;
+            border-bottom: 100px solid #e74c3c; border-left: 150px solid transparent;
+            border-right: 150px solid transparent; border-top: 100px solid transparent; pointer-events: none;
+        }
+        .envelope-lid {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100px;
+            background: #a93226; z-index: 4;
+            clip-path: polygon(0 0, 50% 100%, 100% 0);
+            transform-origin: top; transition: transform 0.6s ease-in-out, z-index 0.6s;
+        }
+        .open-lid .envelope-lid { transform: rotateX(180deg); z-index: 1; }
+        .pull-letter .letter-paper { transform: translateY(-160px); z-index: 5; }
+        .tap-hint { position: absolute; bottom: -60px; width: 100%; text-align: center; color: #fff; font-size: 1rem; animation: blink 1.5s infinite; }
+
+        /* --- SCREEN 3: INTERFACE --- */
+        #main-interface {
+            position: relative; z-index: 10;
+            width: 95%; max-width: 600px; 
+            /* Use dvh and calculation to fit perfectly on mobile */
+            height: 92dvh; 
+            max-height: 850px;
+            background: #111; border: 1px solid #333;
+            border-radius: 15px; padding: 20px;
+            display: none; flex-direction: column; opacity: 1;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+        }
+
+        .progress-bar { width: 100%; height: 4px; background: #333; margin-bottom: 15px; border-radius: 2px; flex-shrink: 0; }
+        .fill { height: 100%; width: 0%; background: #ffd700; transition: width 0.3s; }
+
+        .chapter-title {
+            font-family: 'Cinzel', serif; font-size: 1.2rem; color: #ffd700;
+            text-align: center; margin-bottom: 10px; text-transform: uppercase;
+            border-bottom: 1px solid #333; padding-bottom: 10px;
+            flex-shrink: 0; /* Prevents title from squishing */
+        }
+        
+        .text-area {
+            flex-grow: 1; /* Takes up remaining space */
+            overflow-y: auto; /* Scrolls internally */
+            padding-right: 5px;
+            font-size: 1rem; line-height: 1.6; color: #eeeeee;
+            white-space: pre-wrap; text-align: left;
+            padding-top: 10px; margin-bottom: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Custom Scrollbar */
+        .text-area::-webkit-scrollbar { width: 5px; }
+        .text-area::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+        /* CONTENT STYLES */
+        .hindi-font { font-family: 'Gotu', sans-serif; font-size: 1.1rem; line-height: 1.8; }
+        .highlight { color: #00e5ff; font-weight: bold; text-decoration: underline; text-decoration-color: #00e5ff; }
+        .joke-box { background: #1a1a1a; border-left: 3px solid #f39c12; color: #f1c40f; font-style: italic; display: block; margin: 20px 0; padding: 12px; border-radius: 5px; font-size: 0.9rem; }
+        .reality-box { background: #1a1a1a; border: 1px dashed #777; padding: 12px; margin: 20px 0; border-radius: 8px; font-weight: bold; color: #ccc; text-align: center; font-size: 0.9rem; }
+        .poem-box { font-family: 'Caveat', cursive; font-size: 1.5rem; color: #ff6b6b; text-align: center; margin: 20px 0; padding: 10px; border: 1px solid #552222; background: #220a0a; border-radius: 10px; line-height: 1.3; }
+        .radhe { font-family: 'Gotu', sans-serif; font-size: 2.2rem; background: linear-gradient(to right, #ffd700, #ff6b6b); -webkit-background-clip: text; color: transparent; font-weight: 700; text-align: center; display: block; margin: 25px 0; animation: glow 2s infinite; }
+
+        /* GAME STYLES */
+        .game-container { text-align: center; padding: 10px 0; }
+        
+        /* Game 1: Bubble Wrap */
+        .bubble-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 20px; }
+        .bubble {
+            width: 38px; height: 38px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; cursor: pointer; transition: 0.2s;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bubble.popped { background: transparent; transform: scale(0.8); border: 2px dashed #555; }
+
+        /* Game 2: Fortune Card */
+        .fortune-card {
+            width: 100%; max-width: 260px; height: 160px; margin: 0 auto;
+            background: linear-gradient(45deg, #c0392b, #8e44ad);
+            border-radius: 15px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; color: white; font-family: 'Cinzel'; font-size: 1.1rem;
+            text-align: center; padding: 20px; border: 2px solid #ffd700;
+            transition: 0.5s; transform-style: preserve-3d;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .fortune-text { display: none; font-family: 'Caveat', cursive; font-size: 1.4rem; color: #ffd700; }
+
+        .btn {
+            background: #ffd700; color: #000; border: none; padding: 16px;
+            border-radius: 50px; font-weight: bold; font-size: 1rem;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+            font-family: 'Cinzel', serif; width: 100%;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2);
+            flex-shrink: 0; /* Ensures button never shrinks */
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.98); }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes glow { 0% { text-shadow: 0 0 5px #ffd700; } 100% { text-shadow: 0 0 20px #ff6b6b; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="stars"></div>
+
+    <audio id="bgMusic" loop>
+        <source src="https://ia800300.us.archive.org/1/items/calm-piano-music/Calm%20Piano%20Music.mp3" type="audio/mpeg">
+    </audio>
+    <div class="music-indicator" id="musicIcon">🎵</div>
+
+    <div id="lang-screen">
+        <div class="title-main">The 2025 Archive</div>
+        <p style="color:#aaa; margin-bottom:30px; text-align: center;">Stop your work.<br>Select a LANGUAGE</p>
+        <button class="lang-btn" onclick="selectLanguage('en')">English (Deep)</button>
+        <button class="lang-btn" onclick="selectLanguage('hi')">Hindi (Emotional)</button>
+    </div>
+
+    <div id="envelope-screen">
+        <div class="envelope-container" onclick="openEnvelope()">
+            <div class="envelope-back"></div>
+            <div class="letter-paper">Open Me</div>
+            <div class="envelope-pocket"></div> 
+            <div class="envelope-lid"></div>
+            <div class="tap-hint">(Tap Envelope)</div>
+        </div>
+    </div>
+
+    <div id="main-interface" class="interface">
+        <div class="progress-bar"><div class="fill" id="pBar"></div></div>
+        <div class="chapter-title" id="title">TITLE</div>
+        <div class="text-area" id="textBox"></div>
+        <button class="btn" id="nextBtn" onclick="nextChapter()">Next Page ➔</button>
+    </div>
+
+    <script>
+        let currentLang = 'en';
+        let currentChapter = 0;
+        
+        // --- CONTENT WITH GAMES ---
+        const contentData = {
+            en: [
+                {
+                    type: "text",
+                    title: "PROLOGUE: STOP EVERYTHING",
+                    text: "Hey,\n\nI need you to do me a favor. Stop whatever you are doing. Put your phone on 'Do Not Disturb'. The world can wait for 10 minutes.\n\nWe are standing at the edge of a cliff called December 31st, 2025. In just a few hours, this year will be nothing but history. A memory. A ghost.\n\nDo you remember how 2025 started? We had so much energy. We thought we would conquer the world. And yet, here we are—tired, a little broken, but wiser. We survived days where we smiled while wanting to scream.\n\nThis letter is not a 'Happy New Year' wish. It is a mirror. It is a reminder of who you were, who you are, and who you are becoming.\n\n<div class='poem-box'>\"The book is closing, the ink is dry,<br>But the story of 'You' will never die.<br>Breathe in the future, breathe out the past,<br>Nothing in this world is built to last.\"</div>\n\nAre you ready to walk down memory lane one last time?",
+                    btn: "TURN THE PAGE 📖"
+                },
+                {
+                    type: "text",
+                    title: "THE SIBLINGS (TOM & JERRY)",
+                    text: "Before we talk about parents, we must acknowledge our first enemy and best friend: <span class='highlight'>The Sibling</span>.\n\nBrother or Sister, it doesn't matter—they are equally annoying. They are the ones who blackmail you (\"Mummy ko bata dunga\"), steal your food, and fight for the remote like it's a World War.\n\nBut let's be real. When you were crying in your room, he/she was the one who checked on you. When you were broke, he/she was the one who sent you money (and reminded you about it 100 times).\n\n<div class='joke-box'>Sibling Logic: \"I can hit you, I can insult you, but if anyone else touches you, I will destroy them.\"</div>\n\n<div class='reality-box'>Reality Check: Friends may come and go, but this idiot is stuck with you forever. Cherish the chaos they bring to your life.</div>\n\nIn 2026, let's promise to fight a little less (maybe) and share our food a little more (never!).",
+                    btn: "LOVE THEM ❤️"
+                },
+                {
+                    type: "text",
+                    title: "THE PARENTS (THE PILLARS)",
+                    text: "Now, the foundation. The people in the other room. <span class='highlight'>Mom & Dad</span>.\n\nThey are annoying, aren't they? Indian parents have a unique way of showing love. They won't say 'I love you', but they will peel an orange for you. They won't say 'I am proud of you', but they will tell the neighbor about your job.\n\nThink about your Mother. She woke up before the sun every single day of 2025 just to make sure you didn't go hungry. Think about your Father. The man who wears the same old shirt so you can buy new branded clothes.\n\n<div class='joke-box'>Mummy Logic: \"You have a headache? Phone! You have a stomach ache? Phone! Is there a tornado coming? It's because of that damn phone!\" 😂</div>\n\n<div class='reality-box'>Reality Check: One day, the house will be quiet. The scolding will stop. And you will give anything to hear that annoyance one more time.</div>\n\nIn 2026, let's promise to hug them a little tighter. They are the only safety net that never breaks.",
+                    btn: "FOREVER GRATEFUL 🙏"
+                },
+                {
+                    type: "text",
+                    title: "THE IDIOTS (FRIENDS)",
+                    text: "To the friends who know our passwords, our exes, and our darkest secrets.\n\nThe ones who planned the Goa trip that got cancelled for the 50th time. The ones who insulted you to your face but fought a war for you behind your back.\n\nFriendship in 2025 wasn't about meeting every day. It was about sending reels at 2 AM and saying \"This is so us\". It was about comfortable silence.\n\n<div class='joke-box'>Fact: A true friend is someone who enters your house, ignores you, opens the fridge, eats your food, and then asks 'Kya banaya hai aaj?'.</div>\n\n<div class='poem-box'>\"Through every high and every low,<br>You were the light that made me glow.<br>In a world of fakes and lies,<br>You were the truth in disguise.\"</div>\n\nThank you to every friend who listened to my nonsense at 3 AM. Cheers to another year of tolerating each other!",
+                    btn: "CHEERS TO US 🍻"
+                },
+                {
+                    type: "text",
+                    title: "THE MENTORS",
+                    text: "We often forget the people who shaped our brains: Teachers, Mentors, and yes, even the annoying Bosses.\n\nWe may have cursed them for the deadlines and the assignments. We may have muted them on Zoom calls. But today, if we have any discipline, any skill, or any wisdom, a part of it comes from them.\n\nThey pushed us when we wanted to stop. They saw potential in us when we saw nothing.\n\n<div class='joke-box'>Teacher: \"Is this a fish market?\"<br>Me (inner voice): \"Ma'am, at least a fish market makes profit! Here we are just losing brain cells!\" 😂</div>\n\n<div class='reality-box'>Reality Check: Every scolding in 2025 was a correction. Every rejection was a redirection. Every failure was a lesson preparing you for the success of 2026.</div>\n\nRespect to everyone who taught us a lesson this year.",
+                    btn: "RESPECT 🫡"
+                },
+                {
+                    type: "text",
+                    title: "THE STRANGERS",
+                    text: "This chapter is dedicated to the people we don't even know properly, yet they impacted our year.\n\nThe stranger who smiled at you in the bus when you were having a bad day. The online friend you've never met but talk to daily. The delivery guy who brought you food in the pouring rain. The watchman who greeted you every morning.\n\nWe think we are alone, but we are connected by invisible threads of kindness.\n\n<div class='poem-box'>\"Faces unknown, names untold,<br>Yet they have hearts made of gold.<br>A fleeting smile, a helping hand,<br>Kindness spreads across the land.\"</div>\n\nYou might have been someone's reason to smile in 2025 without even knowing it. Never underestimate the power of a small act of goodness. May 2026 bring you more kindness from unexpected places.",
+                    btn: "CONNECT ✨"
+                },
+                {
+                    type: "game",
+                    title: "MINI GAME: STRESS BUSTER",
+                    text: "2025 gave us a lot of stress. Before we move to the serious part, let's pop that stress away.\n\n<div class='game-container'>Tap the bubbles to pop them! 👇</div><div class='bubble-grid' id='bubbleGrid'></div>",
+                    btn: "I FEEL BETTER NOW 😌"
+                },
+                {
+                    type: "text",
+                    title: "SURVIVAL MODE",
+                    text: "Let's be brutally honest. 2025 wasn't easy. It wasn't all sunshine and rainbows.\n\nThere were nights where anxiety hit us like a truck at 3 AM. There were days where we felt like giving up. We lost people we loved, we lost opportunities we wanted, and sometimes, we lost ourselves in the noise of the world.\n\nWe questioned our worth. We compared our Chapter 1 to someone else's Chapter 20. We felt left behind.\n\n<div class='reality-box'>Reality Check: You survived 100% of your bad days in 2025. Read that again. You are undefeated.</div>\n\nWe are lucky to be here, breathing, living, and hoping. Never take this breath for granted. You are a warrior, and your scars are just proof that you fought and won.",
+                    btn: "I AM STRONG 💪"
+                },
+                {
+                    type: "text",
+                    title: "THE APOLOGY",
+                    text: "The clock is ticking. Before we step into 2026, I want to clean my soul. Carrying grudges into the new year is like carrying heavy luggage on a hike—it only slows you down.\n\nWe are humans. We have egos. We say things we don't mean when we are angry or stressed.\n\nIf in the last 365 days, my words pierced your heart... if I ignored you when you needed me... if I made a joke that wasn't funny to you... if I was silent when I should have spoken...\n\n<span class='highlight'>I AM DEEPLY, GENUINELY SORRY.</span>\n\n<div class='poem-box'>\"Let anger fade like setting sun,<br>Forgiveness implies the war is won.<br>Leave the hurt in the year gone by,<br>Let our spirits together fly.\"</div>\n\nPlease press 'Delete' on those bad memories. Let's enter the new year lighter, freer, and happier.",
+                    btn: "FORGIVEN & FORGOTTEN 🕊️"
+                },
+                {
+                    type: "text",
+                    title: "GRATITUDE",
+                    text: "And finally, a massive, heartfelt Thank You.\n\nThank you for tolerating my mood swings. Thank you for reading my long messages (like this one). Thank you for simply existing in my life.\n\nYou made my 2025 memorable just by being in it. You added color to my grey days. You were the calm in my storm.\n\n<div class='reality-box'>You are a gem. A slightly cracked, crazy gem, but still a gem. I wouldn't trade you for anything in the world.</div>\n\nRealize this: You are loved more than you know. You are valued more than you think. Keep shining.",
+                    btn: "THANKS A LOT ❤️"
+                },
+                {
+                    type: "text",
+                    title: "DIVINE STRENGTH",
+                    text: "As we walk into the unknown of 2026, remember the one power that never leaves.\n\nWhen you feel lonely in a crowded room, God is with you. When you are scared of the future, He holds your hand. He has watched you cry, and He has prepared your joy.\n\nTake this mantra with you. Whenever life gets overwhelming, just close your eyes, take a deep breath, and say:\n\n<span class='radhe'>Radhe Radhe</span>\n\n<div class='poem-box'>\"Surrender fear, embrace the light,<br>Faith will guide you through the night.<br>In every breath, in every prayer,<br>Feel His presence everywhere.\"</div>\n\nSurrender your worries. Trust the process.",
+                    btn: "JAI SHRI KRISHNA 🪷"
+                },
+                {
+                    type: "game",
+                    title: "MINI GAME: 2026 PREDICTION",
+                    text: "What does 2026 hold for you? Tap the card to reveal your destiny!\n\n<div class='game-container'><div class='fortune-card' onclick='revealFortune(this)'><span id='fortuneContent'>TAP ME 🃏</span><div class='fortune-text' id='fortuneText'></div></div></div>",
+                    btn: "CLAIM IT ✨"
+                },
+                {
+                    type: "text",
+                    title: "EPILOGUE: WELCOME 2026",
+                    text: "The stage is set. The lights are dimming on 2025. The audience is waiting.\n\nA brand new book of 365 blank pages is waiting for your signature. Don't write the same old story of fear and procrastination. Write a thriller. Write a romance. Write a story of victory.\n\n<div class='reality-box'>Final Thought: The calendar changes, but the heart remains same. Bye Bye 2025, and Welcome 2026 with a warm heart.</div>\n\nMy wish for you:\n1. May your Bank Account overflow 💰\n2. May your Heart be full of peace ❤️\n3. May your Smile be genuine 😊\n\n<div class='poem-box'>\"New hopes, new dreams, a sky so blue,<br>Happy New Year to wonderful You.\"</div>\n\nGo conquer the world!",
+                    btn: "ENTER 2026 🚀"
+                }
+            ],
+            hi: [
+                {
+                    type: "text",
+                    title: "प्रस्तावना: एक पल ठहरिए",
+                    text: "नमस्ते,\n\nमैं आपसे एक विनती करता हूँ। अपना सारा काम छोड़ दें। फोन को 'Do Not Disturb' पर लगा दें। दुनिया 10 मिनट इंतज़ार कर सकती है।\n\nहम 31 दिसंबर 2025 की अंतिम शाम पर खड़े हैं। कुछ ही पलों में, यह साल इतिहास बन जाएगा। एक याद। एक सपना।\n\nयाद है 2025 कैसे शुरू हुआ था? हमारे पास कितना जोश था। हमने सोचा था हम दुनिया बदल देंगे। लेकिन हकीकत में, हम बस अपनी नींद और करियर को संभालने में लगे रहे। हमने हँसा, हमने रोया, हमने उन लड़ाइयों को लड़ा जिनके बारे में दुनिया को खबर भी नहीं है।\n\nयह पत्र कोई साधारण 'हैप्पी न्यू ईयर' मैसेज नहीं है। यह एक आईना है। यह आपकी हिम्मत, आपके संघर्ष और आपकी जीत का गवाह है।\n\n<div class='poem-box'>\"वक्त की शाख से लम्हे गिरेंगे जरूर,<br>मगर तुम नई उम्मीद बनकर खिलना जरूर।<br>बीत गया जो साल उसे भूल जाओ,<br>नए सफर पर मुस्कुरा कर कदम बढ़ाओ।\"</div>\n\nक्या आप यादों की इस गली में चलने के लिए तैयार हैं?",
+                    btn: "पन्ना पलटें 📖"
+                },
+                {
+                    type: "text",
+                    title: "भाई-बहन (TOM & JERRY)",
+                    text: "सबसे पहले उनकी बात करते हैं जो हमारे सुख-दुख (और रिमोट) के साथी हैं: <span class='highlight'>भाई-बहन</span>।\n\nवो जो हर बात पर ब्लैकमेल करते हैं: \"मम्मी को बता दूंगा!\"। वो जो खाने के लिए लड़ते हैं, पर मुसीबत में सबसे पहले खड़े होते हैं।\n\n<div class='joke-box'>भाई का प्यार: \"मैं तुझे मार सकता हूँ, पर कोई और तुझे हाथ भी लगाए, तो उसे छोड़ूँगा नहीं।\"</div>\n\n<div class='reality-box'>हकीकत: उन्होंने हमें रोते हुए देखा है, फिर भी हमें हीरो मानते हैं। 2026 में उनसे थोड़ा कम झगड़ा करेंगे (शायद)।</div>",
+                    btn: "लव यू ❤️"
+                },
+                {
+                    type: "text",
+                    title: "माता-पिता (THE PILLARS)",
+                    text: "अब बात उनकी जो हमारी दुनिया की छत हैं।\n\nवो माँ जो डांटती है पर खाना भी खिलाती है। वो पापा जो प्यार नहीं जताते, पर बाइक में पेट्रोल है या नहीं, ये जरूर पूछते हैं।\n\n<div class='joke-box'>माँ का लॉजिक: \"सिर दर्द है? फोन चलाओ। पेट दर्द है? फोन चलाओ। सुनामी आई है? सब इस फोन की गलती है!\" 😂</div>\n\n<div class='reality-box'>हकीकत: जब पूरी दुनिया ने मुँह मोड़ा, तब यही लोग हमारा घर बने रहे।</div>\n\n<div class='poem-box'>\"रूठना मनाना तो चलता रहेगा,<br>परिवार का प्यार कभी कम न होगा।\"</div>",
+                    btn: "चरण स्पर्श 🙏"
+                },
+                {
+                    type: "text",
+                    title: "कमीने दोस्त",
+                    text: "अब उन नमूनों की बात करते हैं जो हमारे सारे राज़ जानते हैं।\n\nवो दोस्त जिसने 2025 में भी गोवा का प्लान बनाकर कैंसिल कर दिया। वो दोस्त जो '5 मिनट में पहुँच रहा हूँ' बोलकर घर से निकलता है। वो दोस्त जो आपकी बेइज्जती करके ही प्यार जताता है।\n\n<div class='joke-box'>तथ्य: सच्चा दोस्त वो है जो आपके घर आए, सीधा फ्रिज खोले, और पूछे 'आज खाने में क्या है?'।</div>\n\n<div class='reality-box'>हकीकत: इनके बिना 2025 बहुत सूना होता। इनकी बकवास ने ही हमें जिंदा रखा।</div>\n\nशुक्रिया उन सभी दोस्तों का जिन्होंने रात के 2 बजे हमारी बकवास सुनी।",
+                    btn: "दोस्ती ज़िंदाबाद 🍻"
+                },
+                {
+                    type: "text",
+                    title: "गुरु और शिक्षक",
+                    text: "हमारे शिक्षकों और ऑफिस के बॉस के लिए भी दो शब्द।\n\nहमने चाहे क्लास में कितनी भी मस्ती की हो, या बॉस को मन ही मन कितना भी कोसा हो, लेकिन आज हम जो थोड़े बहुत समझदार हैं, वो उन्हीं की वजह से हैं।\n\n<div class='joke-box'>टीचर: \"क्या यह मछली बाज़ार है?\"\nमैं (मन में): \"मैम, मछली बाज़ार में कम से कम मुनाफा तो होता है, यहाँ तो बस अटेंडेंस जा रही है!\" 😂</div>\n\nइस साल हर डांट में एक सबक थी। हर असफलता 2026 की जीत की तैयारी थी। उनका सम्मान करें।",
+                    btn: "सम्मान 🫡"
+                },
+                {
+                    type: "text",
+                    title: "अनजान लोग",
+                    text: "यह उनके लिए जिन्हें हम ठीक से जानते भी नहीं।\n\nवो अजनबी जिसने मेट्रो में आपको देखकर मुस्कराया। वो ऑनलाइन दोस्त जिससे कभी मिले नहीं पर बात रोज होती है। वो गार्ड भैया जो रोज़ नमस्ते करते हैं।\n\n<div class='reality-box'>हकीकत: दुनिया इन छोटे-छोटे रिश्तों से ही खूबसूरत बनती है। आप नहीं जानते, पर आप भी किसी की मुस्कान की वजह बने होंगे।</div>\n\n<div class='poem-box'>\"अनजाने चेहरों में भी रब दिखता है,<br>जब कोई बिना मतलब मदद करता है।\"</div>\n\nउम्मीद है 2026 में हमें ऐसे और अच्छे लोग मिलेंगे।",
+                    btn: "जुड़ाव ✨"
+                },
+                {
+                    type: "game",
+                    title: "गेम: तनाव दूर करें",
+                    text: "2025 ने बहुत टेंशन दी। चलो सारा गुस्सा इन बुलबुलों पर निकालते हैं।\n\n<div class='game-container'>फोड़ने के लिए टैप करें! 👇</div><div class='bubble-grid' id='bubbleGrid'></div>",
+                    btn: "अब अच्छा लग रहा है 😌"
+                },
+                {
+                    type: "text",
+                    title: "संघर्ष और जीत",
+                    text: "सच बोलें? 2025 आसान नहीं था।\n\nऐसी रातें थीं जब चिंता (Anxiety) ने हमें जकड़ लिया था। ऐसे दिन थे जब लगा कि अब हिम्मत नहीं बची। हमने अपनों को खोया, हमने सपने टूटते देखे।\n\n<div class='reality-box'>हकीकत: तुमने अपने 100% बुरे दिनों को हराया है। तुम एक योद्धा हो।</div>\n\n<div class='poem-box'>\"गिरकर संभलना ही ज़िंदगी है,<br>हारकर जीतना ही बंदगी है।\"</div>\n\nहम बहुत किस्मत वाले हैं कि हम ज़िंदा हैं। अपनी हिम्मत पर गर्व करो।",
+                    btn: "मैं एक योद्धा हूँ 💪"
+                },
+                {
+                    type: "text",
+                    title: "दिल से माफ़ी",
+                    text: "नए साल में जाने से पहले, मैं अपना दिल साफ़ करना चाहता हूँ।\n\nहम इंसान हैं। गुस्से में हम अक्सर वो कह देते हैं जो नहीं कहना चाहिए।\n\nअगर 2025 में मैंने जाने-अनजाने आपका दिल दुखाया हो... अगर मैंने आपके मैसेज का जवाब न दिया हो... अगर मैंने कोई बुरा मज़ाक किया हो...\n\n<span class='highlight'>तो मैं हाथ जोड़कर माफ़ी मांगता हूँ।</span>\n\n<div class='reality-box'>हकीकत: कड़वी यादें लेकर नए साल में जाना, भारी बस्ते के साथ पहाड़ चढ़ने जैसा है। बोझ उतार दो।</div>\n\n<div class='poem-box'>\"माफ़ करना और भूल जाना,<br>यही है खुशी का असली खजाना।\"</div>",
+                    btn: "माफ़ किया 🕊️"
+                },
+                {
+                    type: "text",
+                    title: "शुक्रिया",
+                    text: "और अंत में, एक बड़ा सा 'Thank You'।\n\nमेरे नखरे उठाने के लिए शुक्रिया। मेरी लंबी बातें पढ़ने के लिए शुक्रिया। बस मेरी ज़िंदगी में होने के लिए शुक्रिया।\n\n<div class='reality-box'>हकीकत: आपने मेरे 2025 को यादगार बना दिया। आप अनमोल हैं।</div>\n\n<div class='poem-box'>\"तेरा साथ है तो हर गम है कम,<br>शुक्रिया तेरा, मेरे हमदम।\"</div>\n\nमैं आपको किसी भी कीमत पर नहीं खोना चाहता।",
+                    btn: "बहुत बहुत धन्यवाद ❤️"
+                },
+                {
+                    type: "text",
+                    title: "ईश्वरीय शक्ति",
+                    text: "2026 के अनजान रास्तों पर चलने से पहले, उस शक्ति को याद रखें जो कभी साथ नहीं छोड़ती।\n\nजब आप अकेले होते हैं, तो ईश्वर आपके साथ होता है। जब कोई रास्ता नहीं दिखता, वो रास्ता बनाता है।\n\nजब भी डर लगे, घबराहट हो, बस आँखें बंद करना, गहरी सांस लेना और कहना:\n\n<span class='radhe'>राधे राधे</span>\n\n<div class='poem-box'>\"जिसका कोई नहीं उसका तो खुदा है,<br>राधे नाम में ही हर दर्द की दवा है।\"</div>\n\nचिंता छोड़ दो। सब अच्छा होगा।",
+                    btn: "जय श्री कृष्णा 🪷"
+                },
+                {
+                    type: "game",
+                    title: "गेम: 2026 की भविष्यवाणी",
+                    text: "2026 में आपकी किस्मत क्या कह रही है? कार्ड पर टैप करें!\n\n<div class='game-container'><div class='fortune-card' onclick='revealFortune(this)'><span id='fortuneContent'>TAP ME 🃏</span><div class='fortune-text' id='fortuneText'></div></div></div>",
+                    btn: "मंजूर है ✨"
+                },
+                {
+                    type: "text",
+                    title: "स्वागत है 2026",
+                    text: "मंच सज चुका है। 2025 विदा ले रहा है।\n\n<div class='reality-box'>अंतिम विचार: कैलेंडर बदलता है, पर यादें वही रहती हैं। बाय बाय 2025, और 2026 का दिल से स्वागत करो।</div>\n\nमेरी शुभकामनाएँ:\n1. आपकी जेब हमेशा भरी रहे 💰\n2. मन में शांति रहे ❤️\n3. चेहरे पर मुस्कान रहे 😊\n\n<div class='poem-box'>\"नया साल, नई उम्मीदें, नई उमंग,<br>मुबारक हो आपको यह नया रंग।\"</div>\n\nजाओ और दुनिया जीत लो!",
+                    btn: "प्रवेश करें 2026 🚀"
+                }
+            ]
+        };
+
+        // --- FUNCTIONS ---
+
+        function selectLanguage(lang) {
+            currentLang = lang;
+            const langScreen = document.getElementById('lang-screen');
+            const envelopeScreen = document.getElementById('envelope-screen');
+            
+            if(lang === 'hi') document.getElementById('textBox').classList.add('hindi-font');
+
+            langScreen.style.opacity = 0;
+            setTimeout(() => {
+                langScreen.style.display = 'none';
+                envelopeScreen.style.display = 'flex';
+                setTimeout(() => envelopeScreen.style.opacity = 1, 50);
+            }, 500);
+        }
+
+        function openEnvelope() {
+            const container = document.querySelector('.envelope-container');
+            const envelopeScreen = document.getElementById('envelope-screen');
+            const mainInterface = document.getElementById('main-interface');
+            const audio = document.getElementById('bgMusic');
+            const icon = document.getElementById('musicIcon');
+
+            audio.volume = 0.6;
+            audio.play().then(() => {
+                icon.style.display = "block";
+            }).catch(e => console.log("Audio requires interaction"));
+
+            container.classList.add('open-lid');
+            setTimeout(() => container.classList.add('pull-letter'), 600);
+
+            setTimeout(() => {
+                envelopeScreen.style.opacity = 0;
+                setTimeout(() => {
+                    envelopeScreen.style.display = 'none';
+                    mainInterface.style.display = 'flex';
+                    setTimeout(() => {
+                        mainInterface.style.opacity = 1;
+                        loadChapter(0);
+                    }, 100);
+                }, 1000);
+            }, 2000);
+        }
+
+        function loadChapter(index) {
+            const chapters = contentData[currentLang];
+            const data = chapters[index];
+            const textBox = document.getElementById('textBox');
+            const nextBtn = document.getElementById('nextBtn');
+            const pBar = document.querySelector('.fill');
+
+            document.getElementById('title').innerText = data.title;
+            pBar.style.width = ((index + 1) / chapters.length * 100) + "%";
+
+            // Render Text/Game
+            textBox.innerHTML = data.text;
+            nextBtn.innerText = data.btn;
+            textBox.scrollTop = 0;
+
+            // Initialize Game Logic if needed
+            if (data.type === 'game') {
+                if (data.title.includes("STRESS") || data.title.includes("तनाव")) initBubbleGame();
+            }
+        }
+
+        function nextChapter() {
+            if (navigator.vibrate) navigator.vibrate(40);
+            
+            const chapters = contentData[currentLang];
+            if (currentChapter < chapters.length - 1) {
+                currentChapter++;
+                loadChapter(currentChapter);
+            } else {
+                celebrate();
+            }
+        }
+
+        // --- GAME LOGIC ---
+        function initBubbleGame() {
+            const grid = document.getElementById('bubbleGrid');
+            grid.innerHTML = '';
+            for(let i=0; i<15; i++) {
+                let b = document.createElement('div');
+                b.className = 'bubble';
+                b.onclick = function() {
+                    if(!this.classList.contains('popped')) {
+                        this.classList.add('popped');
+                        if(navigator.vibrate) navigator.vibrate(20);
+                    }
+                }
+                grid.appendChild(b);
+            }
+        }
+
+        function revealFortune(card) {
+            const fortunesEn = ["Big Money Coming! 💰", "True Love ❤️", "Dream Job 💼", "World Travel ✈️", "Inner Peace 🧘"];
+            const fortunesHi = ["खूब पैसा आएगा! 💰", "सच्चा प्यार ❤️", "सपनों की नौकरी 💼", "विदेश यात्रा ✈️", "मानसिक शांति 🧘"];
+            
+            const text = document.getElementById('fortuneText');
+            const placeholder = document.getElementById('fortuneContent');
+            const list = currentLang === 'en' ? fortunesEn : fortunesHi;
+            const random = list[Math.floor(Math.random() * list.length)];
+
+            card.style.transform = "rotateY(180deg)";
+            setTimeout(() => {
+                placeholder.style.display = "none";
+                card.style.transform = "rotateY(0deg)";
+                card.style.background = "#fff";
+                card.style.color = "#333";
+                text.style.display = "block";
+                text.innerText = random;
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+            }, 300);
+        }
+
+        function celebrate() {
+            confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+            setInterval(() => {
+                confetti({ particleCount: 50, spread: 120, origin: { y: 0.6 }, colors: ['#ffd700', '#ff6b6b'] });
+            }, 1000);
+            document.getElementById('title').innerText = "HAPPY NEW YEAR 2026!";
+            document.getElementById('nextBtn').style.display = 'none';
+        }
+
+    </script>
+
+</body>
+</html>
